@@ -1,0 +1,48 @@
+name: Build iOS App for Appetize
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # Permet de lancer le script manuellement
+
+jobs:
+  build:
+    runs-on: macos-latest # Demande un Mac virtuel à GitHub
+
+    steps:
+    - name: 📥 Récupérer les fichiers
+      uses: actions/checkout@v4
+
+    - name: 📦 Extraire le projet ZIP
+      run: |
+        unzip ProjetiOS.zip -d mac_workspace
+
+    - name: 🔨 Compiler pour le Simulateur
+      run: |
+        cd mac_workspace
+        # Trouve automatiquement le fichier Xcode peu importe comment le ZIP a été fait
+        PROJECT_PATH=$(find . -name "*.xcodeproj" | head -n 1)
+        PROJECT_DIR=$(dirname "$PROJECT_PATH")
+        cd "$PROJECT_DIR"
+        
+        # Lance la compilation iOS
+        xcodebuild -project HelloWorld.xcodeproj \
+                   -scheme HelloWorldBasic \
+                   -sdk iphonesimulator \
+                   -configuration Debug \
+                   -derivedDataPath ../../build_output \
+                   CODE_SIGN_IDENTITY="" \
+                   CODE_SIGNING_REQUIRED=NO \
+                   CODE_SIGNING_ALLOWED=NO
+
+    - name: 🤐 Préparer le format final pour Appetize
+      run: |
+        cd build_output/Build/Products/Debug-iphonesimulator/
+        zip -r HelloWorldAppetize.zip *.app
+
+    - name: 📤 Sauvegarder l'application finale
+      uses: actions/upload-artifact@v4
+      with:
+        name: Application-Compilee-Appetize
+        path: build_output/Build/Products/Debug-iphonesimulator/HelloWorldAppetize.zip
+        
